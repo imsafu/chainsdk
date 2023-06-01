@@ -123,7 +123,7 @@ func (keys *V0AccountKeys) Get(index int) *solana.PublicKey {
 	return nil
 }
 
-func TransactionAccountsGetter(tx rpc.TransactionWithMeta, rpcClient *rpc.Client) func(index int) *solana.PublicKey {
+func TransactionAccountsGetter(tx rpc.TransactionWithMeta) func(index int) *solana.PublicKey {
 	txx := tx.MustGetTransaction()
 
 	if !txx.Message.IsVersioned() { // legacy tx
