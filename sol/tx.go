@@ -123,11 +123,9 @@ func (keys *V0AccountKeys) Get(index int) *solana.PublicKey {
 	return nil
 }
 
-func TransactionAccountsGetter(tx rpc.TransactionWithMeta) func(index int) *solana.PublicKey {
-	txx := tx.MustGetTransaction()
-
-	if !txx.Message.IsVersioned() { // legacy tx
-		keys := txx.Message.AccountKeys
+func TxAccountGetter(isVersioned bool, accountKeys []solana.PublicKey, loadedAddresses rpc.LoadedAddresses) func(index int) *solana.PublicKey {
+	if !isVersioned { // legacy tx
+		keys := accountKeys
 		return func(index int) *solana.PublicKey {
 			if index >= len(keys) {
 				return nil
@@ -136,6 +134,6 @@ func TransactionAccountsGetter(tx rpc.TransactionWithMeta) func(index int) *sola
 		}
 	}
 
-	keys := NewV0AccountKeys(txx.Message.AccountKeys, tx.Meta.LoadedAddresses)
+	keys := NewV0AccountKeys(accountKeys, loadedAddresses)
 	return keys.Get
 }
