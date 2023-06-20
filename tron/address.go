@@ -19,11 +19,18 @@ func (a Address) Equals(b Address) bool {
 	return bytes.Equal([]byte(a), []byte(b))
 }
 
+func (a Address) String() string {
+	return address.Address(a).String()
+}
+
 func (a Address) MarshalText() (text []byte, err error) {
 	return []byte(address.Address(a).String()), nil
 }
 
 func (a *Address) UnmarshalText(text []byte) error {
+	if len(text) == 0 {
+		return nil
+	}
 	addr, err := address.Base58ToAddress(string(text))
 	if err != nil {
 		return err

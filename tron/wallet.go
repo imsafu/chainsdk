@@ -1,9 +1,11 @@
 package tron
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"strings"
 	"time"
 
@@ -17,10 +19,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const TRXDecimal = 6
+
+func NewWallet(key *ecdsa.PrivateKey, client *client.GrpcClient, rpc *ethclient.Client) *Wallet {
+	return &Wallet{
+		privateKey: key,
+		Client:     client,
+		RPC:        rpc,
+	}
+}
+
 type Wallet struct {
 	privateKey *ecdsa.PrivateKey
-	Client     *client.GrpcClient
-	RPC        *ethclient.Client
+
+	Client *client.GrpcClient
+	RPC    *ethclient.Client
 }
 
 func (w *Wallet) SignAndSend(tx *api.TransactionExtention) (string, error) {
@@ -104,32 +117,28 @@ func (w *Wallet) ConfirmTx(txHash string) (*core.ResourceReceipt, error) {
 	}
 }
 
-// func (w *Wallet) EstimateCost(target address.Address, calldata []byte) (*big.Int, error) {
-// 	trigger := &core.TriggerSmartContract{
-// 		OwnerAddress:    address.PubkeyToAddress(w.PrivateKey.PublicKey),
-// 		ContractAddress: target,
-// 		Data:            calldata,
-// 	}
-// 	txx, err := w.Client.Client.TriggerContract(context.Background(), trigger)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	txx.Transaction.RawData.FeeLimit = 1e8
+// https://developers.tron.network/reference/estimateenergy
+// > it is recommended to continue using the wallet/triggerconstantcontract API to estimate energy consumption
+//
+// shasta estimate deviation: -1%
+func (w *Wallet) EstimateCost(ctx context.Context, target address.Address, calldata []byte) (*big.Int, error) {
+	constEst, err := w.Client.Client.TriggerConstantContract(ctx, &core.TriggerSmartContract{
+		OwnerAddress:    w.Address(),
+		ContractAddress: target,
+		Data:            calldata,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-// 	constEst, err := w.Client.Client.TriggerConstantContract(context.Background(), trigger)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+	price, err := w.RPC.SuggestGasPrice(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-// 	price, err := w.Client.SuggestGasPrice(context.Background()) // TODO this is a evm rpc ...ethclient.Client
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return new(big.Int).Mul(price, big.NewInt(constEst.EnergyUsed)), nil
-
-// 	// est, err := w.Client.Client.EstimateEnergy(context.Background(), trigger) //use TriggerConstantContract instead
-// 	// if err != nil {
-// 	// 	return nil, err
-// 	// }
-// 	// fmt.Println("EnergyRequired", est.EnergyRequired)
-// }
+	// estimateRet, err := w.Client.Client.EstimateEnergy(ctx, trigger)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	return new(big.Int).Mul(price, big.NewInt(constEst.EnergyUsed)), nil
+}
