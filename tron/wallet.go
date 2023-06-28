@@ -85,9 +85,22 @@ func (w *Wallet) Address() address.Address {
 	return address.PubkeyToAddress(w.privateKey.PublicKey)
 }
 
-func (w *Wallet) ConfirmTx(txHash string) (*core.ResourceReceipt, error) {
-	checkInterval, timeout := time.Second*4, time.Minute*3
-	confirmations := int64(20) // 20 blocks
+func (w *Wallet) IsTxSuccess(txHash string) (bool, error) {
+	txi, err := w.Client.GetTransactionInfoByID(txHash)
+	if err != nil {
+		return false, err
+	}
+
+	if txi == nil || txi.Receipt == nil {
+		return false, fmt.Errorf("unable to get tx receipt(nil receipt): %s", txHash)
+	}
+
+	return txi.Receipt.Result == core.Transaction_Result_SUCCESS, nil
+}
+
+func (w *Wallet) WaitTxReceipt(txHash string) (*core.ResourceReceipt, error) {
+	checkInterval, timeout := time.Second*3, time.Minute*2
+	// confirmations := int64(20) // 20 blocks
 
 	startedAt := time.Now()
 	for {
@@ -95,14 +108,13 @@ func (w *Wallet) ConfirmTx(txHash string) (*core.ResourceReceipt, error) {
 		txi, err := w.Client.GetTransactionInfoByID(txHash)
 
 		if err == nil {
-			nowBlock, err := w.Client.GetNowBlock()
-			if err != nil {
-				return nil, err
-			}
-
-			if nowBlock.BlockHeader.RawData.Number-txi.BlockNumber < confirmations {
-				continue
-			}
+			// nowBlock, err := w.Client.GetNowBlock()
+			// if err != nil {
+			// 	return nil, err
+			// }
+			// if nowBlock.BlockHeader.RawData.Number-txi.BlockNumber < confirmations {
+			// 	continue
+			// }
 
 			return txi.Receipt, nil
 		}
