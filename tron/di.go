@@ -21,6 +21,7 @@ var Wires = wire.NewSet(
 	ProvideGrpcClient,
 	ProvideWallet,
 	ProvideRPCClient,
+	NewTokenCache,
 )
 
 func ProvideGrpcClient(cfg Config) (*client.GrpcClient, error) {
