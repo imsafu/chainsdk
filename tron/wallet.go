@@ -44,6 +44,14 @@ func (w *Wallet) SignAndSend(tx *api.TransactionExtention) (string, error) {
 	return w.Send(tx)
 }
 
+func (w *Wallet) SignAndSendWait(tx *api.TransactionExtention) (*core.ResourceReceipt, error) {
+	txid, err := w.SignAndSend(tx)
+	if err != nil {
+		return nil, err
+	}
+	return w.WaitTxReceipt(txid)
+}
+
 func (w *Wallet) SignTx(txx *api.TransactionExtention) (*api.TransactionExtention, error) {
 	trHash, err := TXHash(txx)
 	if err != nil {
@@ -141,6 +149,10 @@ func (w *Wallet) EstimateCost(ctx context.Context, target address.Address, calld
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if len(constEst.Result.Message) > 0 {
+		return nil, fmt.Errorf("tron estimate result message not empty, maybe failed: %s", constEst.Result.String())
 	}
 
 	price, err := w.RPC.SuggestGasPrice(ctx)
