@@ -109,7 +109,7 @@ func (pr *Provider) BatchInstructions(ins []solana.Instruction) ([][]solana.Inst
 	client := pr.Client
 	ctx := pr.Ctx
 
-	hash, err := client.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	hash, err := client.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +319,7 @@ func (pr *Provider) prepareTx(tx *solana.Transaction) error {
 	ctx := pr.Ctx
 
 	// damn how do i resign the tx?
-	hash, err := client.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	hash, err := client.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
 		return err
 	}
